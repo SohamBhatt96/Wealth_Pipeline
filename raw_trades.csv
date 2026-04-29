@@ -1,0 +1,4 @@
+Date,Ticker,Strategy,Profit_Loss,Risk_Amount,Fees
+04/15/2026,RELIANCE,Breakout, 2500.50 , 1000 ,20
+04/18/2026,TCS, Pullback ,-500.00, 500, 15
+04/20/2026,HDFCBANK,200 EMA Bounce, 1200.00, 800, 25
