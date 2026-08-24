@@ -1,46 +1,69 @@
 import pandas as pd
 from sqlalchemy import create_engine
+import numpy as np
 
-print("--- Step 1: Data Extraction ---")
-# This is where 'df' is created!
-df = pd.read_csv('raw_trades.csv')
-print("Raw data loaded successfully.")
+# 1. Connect to Database
+# Password successfully updated to 'postgresql'
+db_url = 'postgresql://postgres:postgresql@localhost:5432/wealth_db'
+engine = create_engine(db_url)
 
-print("\n--- Step 2: Data Transformation ---")
-# 1. Clean hidden spaces
-df['Ticker'] = df['Ticker'].str.strip()
-df['Strategy'] = df['Strategy'].str.strip()
+# 2. Extract Data: Pull everything we need for deep analytics
+query = """
+    SELECT "Date", "Ticker", "Strategy", "Profit_Loss", "Risk_Amount", "Fees" 
+    FROM stock_history 
+    ORDER BY "Date" ASC;
+"""
+df = pd.read_sql(query, engine)
 
-# 2. Fix the dates for SQL
-df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m-%d')
+# 3. Transform: Calculate the Deep Analytics
 
-# 3. Rename columns to match your pgAdmin database schema exactly
-df = df.rename(columns={
-    'Date': 'entry_date',  # <--- Matched to your database!
-    'Ticker': 'ticker',
-    'Strategy': 'setup_type',
-    'Profit_Loss': 'net_profit',
-    'Risk_Amount': 'initial_risk',
-    'Fees': 'brokerage_and_taxes'
-})
-print("Data cleaned and standardized.")
+# Total Trades
+total_trades = len(df)
 
-print("\n--- Step 3: Database Load ---")
-# TODO: Just put your pgAdmin password here!
-DB_PASSWORD = 'postgresql'  
-DB_NAME = 'trading_portfolio'      
-DB_USER = 'postgres'                
+# Win Rate
+winning_trades = df[df['Profit_Loss'] > 0]
+losing_trades = df[df['Profit_Loss'] <= 0]
+win_rate = (len(winning_trades) / total_trades) * 100
 
-try:
-    print("Connecting to PostgreSQL...")
-    # This creates the "bridge" to your local database
-    connection_string = f'postgresql://{DB_USER}:{DB_PASSWORD}@localhost:5432/{DB_NAME}'
-    engine = create_engine(connection_string)
-    
-    # Push the clean dataframe directly into your 'swing_trades' table
-    df.to_sql('swing_trades', engine, if_exists='append', index=False)
-    
-    print("✅ SUCCESS: Pipeline complete! Trades uploaded to database.")
-    
-except Exception as e:
-    print(f"❌ ERROR: Could not upload. Details: {e}")
+# Average Winner & Loser
+avg_win = winning_trades['Profit_Loss'].mean()
+avg_loss = losing_trades['Profit_Loss'].mean()
+
+# Realized Risk-to-Reward Ratio (RR)
+# We use 'abs' to turn the negative average loss into a positive number for the ratio
+if pd.isna(avg_loss) or avg_loss == 0:
+    realized_rr = float('inf') # Prevent division by zero if you have no losses!
+else:
+    realized_rr = avg_win / abs(avg_loss)
+
+# Max Drawdown (Peak to Trough drop)
+# This calculates the biggest dollar amount your account dropped from an all-time high
+df['Cumulative_PnL'] = df['Profit_Loss'].cumsum()
+df['Peak_PnL'] = df['Cumulative_PnL'].cummax()
+df['Drawdown'] = df['Cumulative_PnL'] - df['Peak_PnL']
+max_drawdown = df['Drawdown'].min()
+
+# 4. View the Results
+print("\n" + "="*45)
+print(" 📊 DEEP PORTFOLIO ANALYTICS")
+print("="*45)
+print(f"Total Trades Taken: {total_trades}")
+print(f"Win Rate:           {win_rate:.2f}%")
+print(f"Average Win:        ₹{avg_win:.2f}")
+print(f"Average Loss:       ₹{avg_loss:.2f}")
+print(f"Realized R:R Ratio: 1 : {realized_rr:.2f}")
+print(f"Max Drawdown:       ₹{max_drawdown:.2f}")
+print("="*45)
+
+# Strategy Deep Dive
+print("\n 🎯 STRATEGY BREAKDOWN")
+print("-" * 45)
+# Grouping by strategy to see which one has the best win rate and total profit
+strategy_group = df.groupby('Strategy').agg(
+    Total_Trades=('Ticker', 'count'),
+    Total_PnL=('Profit_Loss', 'sum'),
+    Win_Rate=('Profit_Loss', lambda x: (x > 0).mean() * 100)
+).round(2)
+
+print(strategy_group)
+print("\n")
