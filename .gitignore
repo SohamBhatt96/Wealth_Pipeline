@@ -1,3 +1,4 @@
 .env
 temp_index.csv
 scanner.log
+__pycache__/
