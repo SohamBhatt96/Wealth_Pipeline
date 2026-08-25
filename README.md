@@ -4,6 +4,33 @@ An automated, locally-hosted algorithmic trading pipeline designed to scan the I
 
 This engine is completely decoupled, featuring a PostgreSQL database for trade logging, a scheduled background worker for daily automated scans, and a Streamlit web dashboard for interactive manual scanning.
 
+## 🗺️ System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Triggers
+        A[⚙️ Windows Task Scheduler]
+        B[🖥️ Streamlit Dashboard]
+    end
+
+    subgraph Core Engine
+        C[🧠 market_scanner.py]
+        D[(🌐 Yahoo Finance)]
+    end
+
+    subgraph Storage & Output
+        E[(🐘 PostgreSQL DB)]
+        F[🔔 Desktop Alerts]
+    end
+
+    A -- "3:45 PM Auto-Scan" --> C
+    B -- "Run Live Scan" --> C
+    C -- "Fetch Market Data" --> D
+    C -- "Log Valid Setups" --> E
+    C -- "Trigger Popup" --> F
+    E -. "Load Trade History" .-> B
+```
+
 ## ⚙️ Core Features
 * **Automated Daily Scanning:** Configured via Windows Task Scheduler to execute silently in the background at 3:45 PM.
 * **Risk Management:** Dynamically calculates position sizing based on strict risk percentages and account capital constraints.
