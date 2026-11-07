@@ -1,71 +1,77 @@
 # 📈 Wealth Pipeline
 
-An automated, locally-hosted algorithmic trading pipeline designed to scan the Indian stock market for high-probability setups using technical indicators (EMA, RSI, Volume). 
+**Wealth Pipeline** is a quantitative swing trading algorithmic scanner and risk management engine built in Python. It scans Indian Equities (NSE), identifies high-probability pullbacks using technical indicators, and automatically calculates strict, volatility-adjusted position sizing before logging actionable setups to a PostgreSQL database.
 
-This engine is completely decoupled, featuring a PostgreSQL database for trade logging, a scheduled background worker for daily automated scans, and a Streamlit web dashboard for interactive manual scanning.
+---
 
-## 🗺️ System Architecture
+## 🚀 Key Features
 
-```mermaid
-flowchart TD
-    subgraph Triggers
-        A[⚙️ Windows Task Scheduler]
-        B[🖥️ Streamlit Dashboard]
-    end
+* **Automated Risk Management:** Calculates position sizes dynamically based on Account Capital and Risk Per Trade (%). 
+* **Volatility-Adjusted Stop Loss:** Uses a 14-period Average True Range (ATR) to place stop losses safely outside the zone of normal market noise.
+* **Institutional Liquidity Filtering:** Filters out illiquid operator traps by demanding a minimum **₹5 Crore daily Rupee Turnover**, protecting capital from slippage without artificially blocking high-priced blue-chip stocks.
+* **Streamlit UI:** A fully interactive web dashboard for running live market scans and tracking historical setups.
+* **Database Integration:** Automatically logs all qualified trades (Entry, Stop Loss, Target, Shares, and Capital Allocated) directly to a PostgreSQL database.
 
-    subgraph Core Engine
-        C[🧠 market_scanner.py]
-        D[(🌐 Yahoo Finance)]
-    end
+---
 
-    subgraph Storage & Output
-        E[(🐘 PostgreSQL DB)]
-        F[🔔 Desktop Alerts]
-    end
+## 📊 Strategy Profiles
 
-    A -- "3:45 PM Auto-Scan" --> C
-    B -- "Run Live Scan" --> C
-    C -- "Fetch Market Data" --> D
-    C -- "Log Valid Setups" --> E
-    C -- "Trigger Popup" --> F
-    E -. "Load Trade History" .-> B
-```
+The engine features three distinct swing-trading algorithms tailored to different market environments.
 
-## ⚙️ Core Features
-* **Automated Daily Scanning:** Configured via Windows Task Scheduler to execute silently in the background at 3:45 PM.
-* **Risk Management:** Dynamically calculates position sizing based on strict risk percentages and account capital constraints.
-* **Database Integration:** Permanently logs all valid trade setups (Ticker, Entry, Stop Loss, Target Price, Shares) to a local PostgreSQL instance.
-* **Interactive Web GUI:** Streamlit frontend allows for manual universe selection, on-the-fly parameter adjustments, and live database viewing.
-* **Desktop Notifications:** Utilizes the `plyer` library to push native Windows alerts when a valid setup is detected during background execution.
+| Strategy | Description | Technical Criteria |
+| :--- | :--- | :--- |
+| **Conservative** | Deep value pullbacks near major institutional support. | `Price > 200 EMA`, `RSI < 42`, `ADX > 18` |
+| **Balanced** | Healthy mid-trend pullbacks offering clean 1:2 R:R entries. | `Price > 50 EMA`, `RSI < 48`, `ADX > 20` |
+| **Aggressive** | Fast breakouts and strong runners taking shallow breathers. | `Price > 20 EMA`, `RSI < 55`, `ADX > 22` |
 
-## 🛠️ Technology Stack
-* **Backend:** Python 3, `yfinance`, `pandas`
-* **Frontend:** `streamlit`, `rich` (CLI fallback)
-* **Database:** PostgreSQL, `sqlalchemy`, `psycopg2`
-* **Version Control:** Git & GitHub
+*(All strategies require a minimum Rupee Turnover of ₹5,000,000)*
 
-## 🚀 Quick Start (Local Setup)
+---
 
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/SohamBhatt96/Wealth_Pipeline.git](https://github.com/SohamBhatt96/Wealth_Pipeline.git)
-   cd Wealth_Pipeline
-   ```
+## 🛠️ Tech Stack
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+* **Core Engine:** Python 3, `pandas`, `numpy`
+* **Market Data:** `yfinance`
+* **Database:** PostgreSQL, `SQLAlchemy`
+* **Frontend UI:** `Streamlit`
+* **Desktop Alerts:** `plyer`
 
-3. **Configure the Database:**
-   * Create a PostgreSQL database named `wealth_db`.
-   * Create a `.env` file in the root directory and add your credentials:
-     ```text
-     DB_PASSWORD=your_secure_password
-     ```
-   * *Note: The database tables and schema will auto-generate on the first run via SQLAlchemy.*
+---
 
-4. **Launch the Dashboard:**
-   ```bash
-   python -m streamlit run dashboard.py
-   ```
+## ⚙️ Installation & Setup
+
+1. Clone the repository and install dependencies:
+    git clone [https://github.com/yourusername/wealth-pipeline.git](https://github.com/yourusername/wealth-pipeline.git)
+    cd wealth-pipeline
+    pip install -r requirements.txt
+
+2. Database Configuration:
+    Ensure PostgreSQL is installed and running. The engine expects a local PostgreSQL connection (configured in `database_manager.py`). 
+
+3. Generate Stock Universes:
+    Run the universe updater to fetch the latest Nifty index constituents:
+    python universe_updater.py
+
+---
+
+## 💻 Usage
+
+Wealth Pipeline can be operated via the interactive web dashboard or the command-line interface.
+
+### Option 1: Streamlit Dashboard (Recommended)
+Launch the graphical interface to configure risk parameters, select strategies, and view database logs.
+    python -m streamlit run dashboard.py
+
+### Option 2: Manual Terminal Scan
+Run the engine directly from the terminal. It will prompt you to enter your capital, risk percentage, and strategy choice manually.
+    python market_scanner.py
+
+### Option 3: Fully Automated Execution (--auto)
+Bypass all manual inputs and run the scan instantly using the default settings saved in your config.json file. This is ideal for scheduling automated daily scans (e.g., via Windows Task Scheduler at 3:15 PM).
+    python market_scanner.py --auto
+
+---
+
+## ⚠️ Disclaimer
+
+*This software is for educational and quantitative research purposes only. It does not constitute financial advice. Algorithmic trading carries inherent risks, and past performance of technical indicators does not guarantee future returns. Always paper-trade and verify setups before deploying real capital.*

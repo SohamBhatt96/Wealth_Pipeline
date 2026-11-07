@@ -1,15 +1,16 @@
-from sqlalchemy import text
-from database_manager import engine
+import os
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-def update_schema():
-    try:
-        with engine.connect() as conn:
-            # This SQL command adds the missing column to your table
-            conn.execute(text('ALTER TABLE trade_history ADD COLUMN "Target_Price" FLOAT;'))
-            conn.commit()
-        print("[+] Successfully added Target_Price to your PostgreSQL database!")
-    except Exception as e:
-        print(f"[-] Error: {e}")
+load_dotenv()
+DB_PASS = os.getenv("DB_PASSWORD")
+DATABASE_URL = f"postgresql://postgres:{DB_PASS}@localhost:5432/wealth_db"
+engine = create_engine(DATABASE_URL)
 
-if __name__ == "__main__":
-    update_schema()
+try:
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE public.trade_history ADD COLUMN IF NOT EXISTS strategy VARCHAR(50);"))
+        connection.execute(text("ALTER TABLE public.trade_history ADD COLUMN IF NOT EXISTS atr NUMERIC;"))
+    print("Database columns added successfully!")
+except Exception as e:
+    print(f"Error updating database: {e}")

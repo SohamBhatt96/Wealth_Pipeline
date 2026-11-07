@@ -1,4 +1,15 @@
+# Credentials and Secrets
 .env
-temp_index.csv
+
+# Configuration with personal capital/risk data
+config.json
+
+# Local logs and temporary files
 scanner.log
+temp_index.csv
+
+# Python caches and Virtual Environments
 __pycache__/
+*.pyc
+venv/
+.venv/
